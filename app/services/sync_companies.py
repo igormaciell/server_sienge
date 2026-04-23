@@ -5,8 +5,6 @@ from app.repositories.dimension_repository import upsert_dim_empresa
 
 COMPANIES_PATH = "/v1/companies"
 
-print("DEBUG SiengeClient methods:", dir(SiengeClient))
-
 async def sync_companies(db: Session) -> dict:
     client = SiengeClient()
     items = await client.fetch_all_pages(COMPANIES_PATH, limit=100)
