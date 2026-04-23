@@ -2,7 +2,10 @@ from sqlalchemy.orm import Session
 from app.services.sienge_client import SiengeClient
 from app.repositories.dimension_repository import upsert_dim_empresa
 
+
 COMPANIES_PATH = "/v1/companies"
+
+print("DEBUG SiengeClient methods:", dir(SiengeClient))
 
 async def sync_companies(db: Session) -> dict:
     client = SiengeClient()

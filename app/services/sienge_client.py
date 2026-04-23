@@ -1,6 +1,6 @@
-import httpx
-import base64
 import asyncio
+import base64
+import httpx
 from app.core.config import settings
 
 
@@ -11,10 +11,10 @@ class SiengeClient:
         auth_b64 = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
         self.headers = {
             "Authorization": f"Basic {auth_b64}",
-            "Accept": "application/json"
+            "Accept": "application/json",
         }
 
-    async def get(self, path: str, params: dict | None = None) -> dict:
+    async def get(self, path: str, params: dict | None = None):
         url = f"{self.base_url}{path}"
 
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -31,70 +31,67 @@ class SiengeClient:
 
             return response.json()
 
-        async def fetch_all_pages(
-            self,
-            path: str,
-            limit: int = 100,
-            extra_params: dict | None = None,
-            pause_seconds: float = 0.3,
-            max_pages: int = 200
-        ) -> list[dict]:
-            offset = 0
-            page = 0
-            all_results = []
-            extra_params = extra_params or {}
-            previous_first_item = None
+    async def fetch_all_pages(
+        self,
+        path: str,
+        limit: int = 100,
+        extra_params: dict | None = None,
+        pause_seconds: float = 0.3,
+        max_pages: int = 200,
+    ) -> list[dict]:
+        offset = 0
+        page = 0
+        all_results = []
+        extra_params = extra_params or {}
+        previous_first_item = None
 
-            while True:
-                if page >= max_pages:
-                    raise Exception(f"Paginação abortada: excedeu {max_pages} páginas.")
+        while True:
+            if page >= max_pages:
+                raise Exception(f"Paginação abortada: excedeu {max_pages} páginas.")
 
-                params = {
-                    **extra_params,
-                    "offset": offset,
-                    "limit": limit
-                }
+            params = {
+                **extra_params,
+                "offset": offset,
+                "limit": limit,
+            }
 
-                data = await self.get(path, params=params)
+            data = await self.get(path, params=params)
 
-                if isinstance(data, dict):
-                    metadata = data.get("resultSetMetadata", {})
-                    results = data.get("results", [])
-                elif isinstance(data, list):
-                    metadata = {}
-                    results = data
-                else:
-                    results = []
+            if isinstance(data, dict):
+                metadata = data.get("resultSetMetadata", {})
+                results = data.get("results", [])
+            elif isinstance(data, list):
+                metadata = {}
+                results = data
+            else:
+                results = []
 
-                print(
-                    f"[SIENGE REST] página={page + 1} | offset={offset} | "
-                    f"retornados={len(results)}"
-                )
+            print(f"[SIENGE REST] página={page + 1} | offset={offset} | retornados={len(results)}")
 
-                if not results:
-                    break
+            if not results:
+                break
 
-                current_first_item = str(results[0])
+            current_first_item = str(results[0])
 
-                if previous_first_item is not None and current_first_item == previous_first_item:
-                    print("[SIENGE REST] Paginação interrompida: a API retornou a mesma página novamente.")
-                    break
+            if previous_first_item is not None and current_first_item == previous_first_item:
+                print("[SIENGE REST] Paginação interrompida: a API retornou a mesma página novamente.")
+                break
 
-                previous_first_item = current_first_item
-                all_results.extend(results)
+            previous_first_item = current_first_item
+            all_results.extend(results)
 
-                count = metadata.get("count")
-                current_limit = metadata.get("limit", limit)
+            count = metadata.get("count")
+            current_limit = metadata.get("limit", limit)
 
-                page += 1
-                offset += current_limit
+            page += 1
+            offset += current_limit
 
-                if count is not None and offset >= count:
-                    break
+            if count is not None and offset >= count:
+                break
 
-                if len(results) < current_limit:
-                    break
+            if len(results) < current_limit:
+                break
 
-                await asyncio.sleep(pause_seconds)
+            await asyncio.sleep(pause_seconds)
 
-            return all_results
+        return all_results
