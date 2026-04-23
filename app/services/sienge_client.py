@@ -6,7 +6,7 @@ from app.core.config import settings
 
 class SiengeClient:
     def __init__(self):
-        self.base_url = settings.SIENGE_BASE_URL
+        self.base_url = settings.SIENGE_REST_BASE_URL
         auth_string = f"{settings.SIENGE_USERNAME}:{settings.SIENGE_PASSWORD}"
         auth_b64 = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
         self.headers = {
