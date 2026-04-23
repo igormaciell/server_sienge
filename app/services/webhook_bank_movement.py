@@ -1,19 +1,18 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.utils.hash_utils import generate_payload_hash
-from app.services.bulk_client import SiengeBulkClient
-from app.services.sync_bank_movement_bulk import sync_bank_movement_bulk
+from app.services.sync_bank_movement_by_ids import sync_bank_movement_by_ids
 import json
 
+
 WEBHOOK_EVENT_DOMAIN = "bank_movement"
-BANK_MOVEMENT_LIST_BULK_PATH = "/bulk-data/v1/bank-movement"
 
 async def process_bank_movement_webhook(db: Session, payload: dict) -> dict:
     payload_hash = generate_payload_hash(payload)
 
     bank_movement_id = (
-        payload.get("bankMovmentId")   # nome do artigo do Sienge
-        or payload.get("bankMovementId")
+        payload.get("bankMovmentId")   # doc antiga/artigo
+        or payload.get("bankMovementId")  # doc swagger
         or payload.get("id")
     )
 
@@ -39,7 +38,7 @@ async def process_bank_movement_webhook(db: Session, payload: dict) -> dict:
         on conflict do nothing
     """), {
         "event_domain": WEBHOOK_EVENT_DOMAIN,
-        "event_type": "bank_movement_changed",
+        "event_type": "BANK_MOVEMENT_UPDATED",
         "external_id": str(bank_movement_id) if bank_movement_id is not None else None,
         "payload_hash": payload_hash,
         "payload_json": json.dumps(payload, ensure_ascii=False)
@@ -48,18 +47,14 @@ async def process_bank_movement_webhook(db: Session, payload: dict) -> dict:
     if bank_movement_id is None:
         db.commit()
         return {
-            "message": "Webhook recebido sem bankMovmentId",
+            "message": "Webhook recebido sem bankMovementId",
             "processed": False
         }
 
-    # Estratégia recomendada:
-    # usar a API Bulk de movimentos específicos/lista de movimentos
-    # em vez de revarrer janela inteira
-    params = {
-        "bankMovementIds": str(bank_movement_id)
-    }
-
-    await sync_bank_movement_bulk(db=db, params=params)
+    result = await sync_bank_movement_by_ids(
+        db=db,
+        movement_ids=[int(bank_movement_id)]
+    )
 
     db.execute(text("""
         update integration.webhook_event
@@ -77,5 +72,6 @@ async def process_bank_movement_webhook(db: Session, payload: dict) -> dict:
     return {
         "message": "Webhook processado com sucesso",
         "bank_movement_id": bank_movement_id,
-        "processed": True
+        "processed": True,
+        "sync_result": result
     }

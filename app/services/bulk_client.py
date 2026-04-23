@@ -13,7 +13,7 @@ class SiengeBulkClient:
             "Accept": "application/json"
         }
 
-    async def get(self, path: str, params: dict | None = None) -> dict:
+    async def get(self, path: str, params: dict | None = None):
         url = f"{self.base_url}{path}"
 
         async with httpx.AsyncClient(timeout=120.0) as client:

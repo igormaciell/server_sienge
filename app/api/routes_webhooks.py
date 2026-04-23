@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.services.webhook_bank_movement import process_bank_movement_webhook
 
+
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
 @router.post("/sienge/bank-movement")
@@ -12,7 +13,6 @@ async def receive_bank_movement_webhook(
 ):
     try:
         payload = await request.json()
-
         result = await process_bank_movement_webhook(db=db, payload=payload)
 
         return {
